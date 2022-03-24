@@ -11,9 +11,9 @@
     ],
     "date": "2022-03-24",
     "categories": [],
-    "contents": "\r\n\r\n\r\n\r\n",
-    "preview": {},
-    "last_modified": "2022-03-24T11:20:40-04:00",
+    "contents": "\r\nOutline of today:\r\nreturn to previous model: poisson regression\r\npanel regression version of this model\r\nmodel comparison??? (save for tomorrow)\r\nbrief foray into moment matching\r\nnonlinear model\r\nnonlinear model with random effects\r\nQuick review\r\nBird masses\r\nThis example is based on work by Marie-Eve at UdeS!\r\nWe imagine a model like the following:\r\n\\[\r\n\\begin{align}\r\n\\text{Nestlings}_i & \\sim \\text{Poisson}(\\lambda_i) \\\\\r\n\\text{log}(\\lambda_i) &= \\beta_0 + \\beta_1 \\times \\text{Mass}_i \\\\\r\n\\beta_0 & \\sim \\text{Normal}(??, ??) \\\\\r\n\\beta_1 & \\sim \\text{Normal}(??, ??)\r\n\\end{align}\r\n\\]\r\n\\(i\\) keeps track of which bird we are talking about. You can think of it as “bird number i”\r\nNote: We could also write the model like this:\r\n\\[\r\n\\begin{align}\r\n\\text{Nestlings}_i & \\sim \\text{Poisson}(e^{\\beta_0} \\times e^{\\beta_1 \\times \\text{Mass}_i}) \\\\\r\n\\beta_0 & \\sim \\text{Normal}(??, ??) \\\\\r\n\\beta_1 & \\sim \\text{Normal}(??, ??)\r\n\\end{align}\r\n\\]\r\nCentering variables\r\nCentering variables is one of the most important things we can do to help our models be more interpretable. This also helps us to set good priors.\r\nCentering a variable means to subtract the mean from the variable:\r\n\\[\r\n\\begin{align}\r\n\\text{Nestlings}_i & \\sim \\text{Poisson}(\\lambda_i) \\\\\r\n\\text{log}(\\lambda_i) &= \\beta_0 + \\beta_1 \\times (\\text{Mass}_i - \\overline{\\text{Mass}}) \\\\\r\n\\beta_0 & \\sim \\text{Normal}(??, ??) \\\\\r\n\\beta_1 & \\sim \\text{Normal}(??, ??)\r\n\\end{align}\r\n\\] Question How does this change the meaning of \\(\\beta_0\\) and/or \\(\\beta_1\\), if at all? (Hint: what will be the equation for a bird who has exactly average mass?)\r\n\r\n\r\n\r\nPlot these to get an idea of it:\r\n\r\n\r\n\r\nNOTE We can also fit this very same model by frequentist statistics, using lm\r\n\r\n                               (Intercept) \r\n                                  1.445629 \r\nI(mother_masses_g - mean(mother_masses_g)) \r\n                                  0.183452 \r\n[1] 1.435085\r\n[1] 0.2\r\n\r\n\r\n\r\n\r\n",
+    "preview": "posts/2022-03-24-day-2-hierarchical-and-nonlinear-models/Day2_files/figure-html5/unnamed-chunk-1-1.png",
+    "last_modified": "2022-03-24T12:24:30-04:00",
     "input_file": "Day2.knit.md"
   }
 ]

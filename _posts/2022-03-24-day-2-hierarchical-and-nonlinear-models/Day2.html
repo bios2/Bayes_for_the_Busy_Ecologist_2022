@@ -112,12 +112,12 @@ code span.wa { color: #5e5e5e; font-style: italic; } /* Warning */
   <!--radix_placeholder_rmarkdown_metadata-->
 
   <script type="text/json" id="radix-rmarkdown-metadata">
-  {"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["title","description","author","date","output"]}},"value":[{"type":"character","attributes":{},"value":["Day 2: hierarchical and nonlinear models"]},{"type":"character","attributes":{},"value":["many groups and curving lines\n"]},{"type":"list","attributes":{},"value":[{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","affiliation"]}},"value":[{"type":"character","attributes":{},"value":["Andrew MacDonald"]},{"type":"character","attributes":{},"value":["Universite de Sherbrooke"]}]}]},{"type":"character","attributes":{},"value":["03-24-2022"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["distill::distill_article"]}},"value":[{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["self_contained"]}},"value":[{"type":"logical","attributes":{},"value":[false]}]}]}]}
+  {"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["title","description","author","date","output","editor_options"]}},"value":[{"type":"character","attributes":{},"value":["Day 2: hierarchical and nonlinear models"]},{"type":"character","attributes":{},"value":["many groups and curving lines\n"]},{"type":"list","attributes":{},"value":[{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","affiliation"]}},"value":[{"type":"character","attributes":{},"value":["Andrew MacDonald"]},{"type":"character","attributes":{},"value":["Universite de Sherbrooke"]}]}]},{"type":"character","attributes":{},"value":["03-24-2022"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["distill::distill_article"]}},"value":[{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["self_contained"]}},"value":[{"type":"logical","attributes":{},"value":[false]}]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["chunk_output_type"]}},"value":[{"type":"character","attributes":{},"value":["console"]}]}]}
   </script>
   <!--/radix_placeholder_rmarkdown_metadata-->
   
   <script type="text/json" id="radix-resource-manifest">
-  {"type":"NULL"}
+  {"type":"character","attributes":{},"value":["Day2_files/anchor-4.2.2/anchor.min.js","Day2_files/bowser-1.9.3/bowser.min.js","Day2_files/distill-2.2.21/template.v2.js","Day2_files/figure-html5/unnamed-chunk-1-1.png","Day2_files/figure-html5/unnamed-chunk-1-2.png","Day2_files/figure-html5/unnamed-chunk-1-3.png","Day2_files/header-attrs-2.13/header-attrs.js","Day2_files/jquery-3.6.0/jquery-3.6.0.js","Day2_files/jquery-3.6.0/jquery-3.6.0.min.js","Day2_files/jquery-3.6.0/jquery-3.6.0.min.map","Day2_files/popper-2.6.0/popper.min.js","Day2_files/tippy-6.2.7/tippy-bundle.umd.min.js","Day2_files/tippy-6.2.7/tippy-light-border.css","Day2_files/tippy-6.2.7/tippy.css","Day2_files/tippy-6.2.7/tippy.umd.min.js","Day2_files/webcomponents-2.0.0/webcomponents.js"]}
   </script>
   <!--radix_placeholder_navigation_in_header-->
   <!--/radix_placeholder_navigation_in_header-->
@@ -1482,7 +1482,64 @@ code span.wa { color: #5e5e5e; font-style: italic; } /* Warning */
 </div>
 
 <div class="d-article">
-<div class="sourceCode" id="cb1"><pre class="sourceCode r distill-force-highlighting-css"><code class="sourceCode r"></code></pre></div>
+<p>Outline of today:</p>
+<ul>
+<li>return to previous model: poisson regression</li>
+<li>panel regression version of this model</li>
+<li>model comparison??? (save for tomorrow)</li>
+<li>brief foray into moment matching</li>
+<li>nonlinear model</li>
+<li>nonlinear model with random effects</li>
+</ul>
+<h3 id="quick-review">Quick review</h3>
+<h3 id="bird-masses">Bird masses</h3>
+<p>This example is based on work by Marie-Eve at UdeS!</p>
+<p>We imagine a model like the following:</p>
+<p><span class="math display">\[
+\begin{align}
+\text{Nestlings}_i &amp; \sim \text{Poisson}(\lambda_i) \\
+\text{log}(\lambda_i) &amp;= \beta_0 + \beta_1 \times \text{Mass}_i \\
+\beta_0 &amp; \sim \text{Normal}(??, ??) \\
+\beta_1 &amp; \sim \text{Normal}(??, ??)
+\end{align}
+\]</span></p>
+<p><span class="math inline">\(i\)</span> keeps track of which bird we are talking about. You can think of it as “bird number i”</p>
+<p>Note: We could also write the model like this:</p>
+<p><span class="math display">\[
+\begin{align}
+\text{Nestlings}_i &amp; \sim \text{Poisson}(e^{\beta_0} \times e^{\beta_1 \times \text{Mass}_i}) \\
+\beta_0 &amp; \sim \text{Normal}(??, ??) \\
+\beta_1 &amp; \sim \text{Normal}(??, ??)
+\end{align}
+\]</span></p>
+<h3 id="centering-variables">Centering variables</h3>
+<p>Centering variables is one of the most important things we can do to help our models be more interpretable. This also helps us to set good priors.</p>
+<p>Centering a variable means to subtract the mean from the variable:</p>
+<p><span class="math display">\[
+\begin{align}
+\text{Nestlings}_i &amp; \sim \text{Poisson}(\lambda_i) \\
+\text{log}(\lambda_i) &amp;= \beta_0 + \beta_1 \times (\text{Mass}_i - \overline{\text{Mass}}) \\
+\beta_0 &amp; \sim \text{Normal}(??, ??) \\
+\beta_1 &amp; \sim \text{Normal}(??, ??)
+\end{align}
+\]</span> <em>Question</em> How does this change the meaning of <span class="math inline">\(\beta_0\)</span> and/or <span class="math inline">\(\beta_1\)</span>, if at all? (Hint: what will be the equation for a bird who has exactly average mass?)</p>
+<div class="layout-chunk" data-layout="l-body">
+
+</div>
+<p>Plot these to get an idea of it:</p>
+<div class="layout-chunk" data-layout="l-body">
+<p><img src="Day2_files/figure-html5/unnamed-chunk-1-1.png" width="624" /></p>
+</div>
+<p><em>NOTE</em> We can also fit this very same model by frequentist statistics, using <code>lm</code></p>
+<div class="layout-chunk" data-layout="l-body">
+<pre><code>                               (Intercept) 
+                                  1.445629 
+I(mother_masses_g - mean(mother_masses_g)) 
+                                  0.183452 </code></pre>
+<pre><code>[1] 1.435085</code></pre>
+<pre><code>[1] 0.2</code></pre>
+</div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r distill-force-highlighting-css"><code class="sourceCode r"></code></pre></div>
 <!--radix_placeholder_article_footer-->
 <!--/radix_placeholder_article_footer-->
 </div>
@@ -1490,6 +1547,15 @@ code span.wa { color: #5e5e5e; font-style: italic; } /* Warning */
 <div class="d-appendix">
 </div>
 
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
 
 <!--radix_placeholder_site_after_body-->
 <!--/radix_placeholder_site_after_body-->
