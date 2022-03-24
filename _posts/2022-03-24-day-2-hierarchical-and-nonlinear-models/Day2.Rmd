@@ -158,10 +158,77 @@ plot a few of these
 ```{r}
 library(tidybayes)
 imaginary_birds_centered |> 
-  add_predicted_draws(prior_predictions, ndraws = 6) |> 
+  add_predicted_draws(prior_predictions, ndraws = 6, seed = 4321) |> 
   ggplot(aes(x = mother_masses_g, y = .prediction)) + geom_point() + facet_wrap(~.draw)
 ```
 
-*Question* are we stat
+*Question* are we satisfied with these priors?
 
+#### Fit to the data
+
+```{r}
+bird_posterior <- update(prior_predictions, sample_prior = "yes", 
+                         file = "bird_posterior", 
+                         file_refit = "on_change", refresh = FALSE)
+```
+
+
+```{r}
+summary(bird_posterior)
+
+knitr::kable(head(tidybayes::tidy_draws(bird_posterior)))
+```
+
+
+How do our priors and posteriors compare?
+
+```{r}
+library(ggridges)
+tidybayes::tidy_draws(bird_posterior) |> 
+  select(.draw, b_Intercept:prior_b_mother_mass_g_cen) |> 
+  pivot_longer(-.draw) |> 
+  ggplot(aes(x = value, y = name)) + geom_density_ridges()
+```
+
+Can we draw the regression line? 
+
+```{r}
+average_mom <- mean(mother_masses_g)
+
+range(imaginary_birds_centered$mother_mass_g_cen)
+
+tibble(mother_mass_g_cen = modelr::seq_range(imaginary_birds_centered$mother_mass_g_cen, 
+                                             n = 10)) |> 
+  tidybayes::add_epred_draws(bird_posterior) |> 
+  ungroup() |> 
+  ggplot(aes(x = average_mom + mother_mass_g_cen, y = .epred)) + 
+  stat_lineribbon() + 
+  scale_fill_brewer(palette = "Greens", direction = -1) + 
+  geom_point(aes(x = mother_masses_g, y = nestlings),
+             data = imaginary_birds_centered, pch = 21,
+             fill = "orange", size = 3)
+  
+
+```
+
+let's also try drawing the prediction intervals
+
+```{r}
+average_mom <- mean(mother_masses_g)
+
+range(imaginary_birds_centered$mother_mass_g_cen)
+
+tibble(mother_mass_g_cen = modelr::seq_range(imaginary_birds_centered$mother_mass_g_cen, 
+                                             n = 10)) |> 
+  tidybayes::add_predicted_draws(bird_posterior) |> 
+  ungroup() |> 
+  ggplot(aes(x = average_mom + mother_mass_g_cen, y = .prediction)) + 
+  stat_lineribbon() + 
+  scale_fill_brewer(palette = "Greens", direction = -1) + 
+  geom_point(aes(x = mother_masses_g, y = nestlings),
+             data = imaginary_birds_centered, pch = 21,
+             fill = "orange", size = 3)
+  
+
+```
 
