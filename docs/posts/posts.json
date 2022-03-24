@@ -1,19 +1,19 @@
 [
   {
-    "path": "posts/welcome/",
-    "title": "Welcome to My Blog",
-    "description": "Welcome to our new blog, My Blog. We hope you enjoy \nreading what we have to say!",
+    "path": "posts/2022-03-24-day-2-hierarchical-and-nonlinear-models/",
+    "title": "Day 2: hierarchical and nonlinear models",
+    "description": "many groups and curving lines",
     "author": [
       {
-        "name": "Nora Jones",
-        "url": "https://example.com/norajones"
+        "name": "Andrew MacDonald",
+        "url": {}
       }
     ],
     "date": "2022-03-24",
     "categories": [],
     "contents": "\r\n\r\n\r\n\r\n",
     "preview": {},
-    "last_modified": "2022-03-24T11:11:18-04:00",
-    "input_file": {}
+    "last_modified": "2022-03-24T11:20:40-04:00",
+    "input_file": "Day2.knit.md"
   }
 ]

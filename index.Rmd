@@ -1,5 +1,5 @@
 ---
-title: "My Blog"
+title: "Applied Bayesian models for working ecologists"
 site: distill::distill_website
 listing: posts
 ---

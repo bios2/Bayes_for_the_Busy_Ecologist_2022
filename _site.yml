@@ -1,7 +1,7 @@
 name: "Bayes_for_the_Busy_Ecologist_2022"
 title: "Bayes for the Busy Ecologist"
 description: |
-  My Blog
+  A short course in applied bayesian modelling for ecologists
 output_dir: "docs"
 navbar:
   right:
