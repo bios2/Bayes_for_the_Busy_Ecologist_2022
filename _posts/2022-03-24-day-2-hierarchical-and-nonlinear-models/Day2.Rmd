@@ -14,7 +14,7 @@ editor_options:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(echo = TRUE)
 
 # Learn more about creating blogs with Distill at:
 # https://rstudio.github.io/distill/blog.html
@@ -84,6 +84,8 @@ $$
 
 
 ```{r bird-simulation}
+set.seed(1234)
+
 n_birds <- 15
 avg_nestlings_at_avg_mass <- log(4.2)
 effect_of_one_gram <- .2
@@ -120,8 +122,46 @@ effect_of_one_gram
 
 ```{r}
 library(brms)
+
+imaginary_birds_centered <- imaginary_birds |> 
+  mutate(mother_mass_g_cen = mother_masses_g - mean(mother_masses_g))
+
+bird_form <- bf(nestlings ~ 1 + mother_mass_g_cen, family = poisson(link = "log"))
+
+get_prior(bird_form, data = imaginary_birds_centered)
+```
+
+We set a prior for each parameter. 
+
+```{r}
+bird_priors <- c(
+  prior(normal(1, .5), class = "Intercept"),
+  prior(normal(.1, .1), class = "b", coef = "mother_mass_g_cen")
+)
+```
+
+#### prior predictive checks
+
+```{r}
+prior_predictions <- brm(bird_form,
+                         data = imaginary_birds_centered,
+                         prior = bird_priors, 
+                         sample_prior = "only", 
+                         file = "bird_model",
+                         file_refit = "on_change",
+                         refresh = FALSE)
 ```
 
 
+plot a few of these
+
+```{r}
+library(tidybayes)
+imaginary_birds_centered |> 
+  add_predicted_draws(prior_predictions, ndraws = 6) |> 
+  ggplot(aes(x = mother_masses_g, y = .prediction)) + geom_point() + facet_wrap(~.draw)
+```
+
+*Question* are we stat
 
 
