@@ -232,3 +232,169 @@ tibble(mother_mass_g_cen = modelr::seq_range(imaginary_birds_centered$mother_mas
 
 ```
 
+Other checks we can do:
+
+```{r eval=FALSE}
+bird_posterior_onlyparam <- update(prior_predictions, sample_prior = "no", 
+                         file = "bird_posterior", 
+                         file_refit = "on_change", refresh = FALSE)
+
+shinystan::launch_shinystan(bird_posterior_onlyparam)
+```
+
+
+## Multilevel models
+
+Based on the awesome vignette for vignette for `tidybayes`
+
+We begin by sampling some data from five different "conditions":
+
+```{r setup-vig}
+library(modelr)
+set.seed(5)
+n <- 10
+n_condition <- 5
+ABC <-
+  data_frame(
+    condition = rep(c("A", "B", "C", "D", "E"), n),
+    response = rnorm(n * 5, c(0, 1, 2, 1, -1), 0.5)
+  )
+
+ABC %>%
+  ggplot(aes(y = condition, x = response)) +
+  geom_point(pch = 21, size = 4, stroke = 1.4, fill = "#41b6c4")
+```
+
+And by fitting a model to these data, with varying intercepts for each group:
+
+```{r MODEL_m, message=FALSE, warning=FALSE, results='hide'}
+m <- brm(
+  response ~ (1 | condition), data = ABC, 
+  control = list(adapt_delta = .99),
+  prior = c(
+    prior(normal(0, 1), class = Intercept),
+    prior(student_t(3, 0, 1), class = sd),
+    prior(student_t(3, 0, 1), class = sigma)
+  )
+)
+```
+
+An easy way to visualize these results is with a so-called "joyplot"^[in writing this I came to realize that [joyplots are over; we do ridgelines now](http://serialmentor.com/blog/2017/9/15/goodbye-joyplots). Also Claus Wilke is one hell of a blogger, definitely going to start reading him!]
+
+```{r m_plot}
+ABC %>%
+  modelr::data_grid(condition) %>%
+  tidybayes::add_predicted_draws(m) %>%
+  ggplot(aes(x = .prediction, y = condition)) +
+  geom_density_ridges(fill = "#41b6c4") + 
+  theme_minimal()
+```
+
+Alright. This used the simple vanilla option, `add_predicted_samples(m)`. This uses the default options for making predictions, which recall is "NULL (default), include all group-level effects". If you set `add_predicted_samples(m, re_formula = NULL)` (try it!), you'll get exactly the same figure.  
+So we can see that to "include" an effect is to take the actual estimated intercepts for each _specific group we studied_ and use them to make new predictions for the same groups. This is **Case 1** from McElreath's list (though in this case, because we only have groups and nothing else, Case 1 and 2 are the same). 
+
+We can also say the **exact same thing** using a formula: 
+
+```{r m_re_condition}
+ABC %>%
+  data_grid(condition) %>%
+  add_predicted_draws(m, re_formula = ~(1|condition)) %>%
+  ggplot(aes(x = .prediction, y = condition)) +
+  geom_density_ridges(fill = "#41b6c4") +  
+  theme_minimal()
+```
+
+That's right, there are three ways to say the exact same thing: say nothing, say `NULL`, or say the original "random effects" formula^[this impulse in R to "help your users" by making it possible to say a great deal by saying almost nothing is... actually pretty counterproductive, I'd argue? But that's a different post]. You go with what you feel in your heart is right, but I prefer the formula.   
+In all three cases, we are using the model to predict the means for the groups in our varying-intercepts model. This is what the documentation means by "including" these varying intercepts.
+
+### Squishing those random effects
+
+OK so that was three separate ways to make predictions for the _same_ groups. What else can we do? Let's try that thing with the `NA` argument, which means "include no group-level effects":
+
+```{r m_plot_NA_TRUE-and_zero}
+ABC %>%
+  data_grid(condition) %>%
+  add_predicted_draws(m, re_formula = NA,
+                        n = 2000) %>%
+  ggplot(aes(x = .prediction, y = condition)) +
+  geom_density_ridges(fill = "#41b6c4") +    theme_minimal()
+```
+
+Ah, so if you do this, all the groups come out the same! But if they're all the same, what do they represent? It seems reasonable that they represent the model's intercept, as if the varying intercepts were all 0. Let's calculate predicitons that ignore the varying effects -- that is, using only the model intercept and the standard deviation of the response -- using a bit of [handy `purrr` magic]^[no magic required! `rnorm` is already vectorized]:
+
+
+```{r}
+m %>% 
+  spread_draws(b_Intercept, sigma) %>% 
+  mutate(prediction = rnorm(length(b_Intercept), b_Intercept, sigma),
+         #map2_dbl(b_Intercept, sigma, ~ rnorm(1, mean = .x, sd = .y)),
+         Prediction = "prediction") %>% #glimpse %>% 
+  ggplot(aes(x = prediction, y = Prediction)) +
+  geom_density_ridges(fill = "#41b6c4") +    
+  theme_minimal()
+```
+
+As you can see, this distribution has exactly the same shape as the five in the previous figure! It is as if we calculated the predictions for a group which was exactly at the average (in other words, it had a varying intercept of 0.) In the Rethinking book, readers are taught to do this in a much more explicit way: you actually generate all the 0 intercepts yourself, and give that to the model in place of the estimated intercepts! A very manual and concrete way to "set something to 0".  
+
+`brms` does this too. As the documentation says
+>NA values within factors in newdata, are interpreted as if all dummy variables of this factor are zero.
+
+The `brms` phrasing certainly takes less space, though it also requires you to remember that this is what NA gets you!
+
+We can also remove random effects from our predictions by excluding them from the `re_formula`. In our model, we have only one varying effect -- yet an even simpler formula is possible, a model with no intercept at all:
+
+```{r}
+ABC %>%
+  data_grid(condition) %>%
+  add_predicted_draws(m, re_formula = ~ 0,
+                        n = 2000) %>%
+  ggplot(aes(x = .prediction, y = condition)) +
+  geom_density_ridges(fill = "#41b6c4") + theme_minimal() 
+```
+
+Once again, the same distribution appears: it is as if all group effects had been set to zero. If we had two random effects and omitted one, this is what we would get for the omitted effect -- the expected value if all its effects were 0.
+
+
+### New levels
+
+I'm going to show how to create predictions for new levels, but first I'm going to show two mistakes that I made frequently while learning:
+
+First, asking for new levels without specifying `allow_new_levels = TRUE`:
+
+```{r m_failur_no_newlevel, error=TRUE}
+# this does not work at all!!
+data_frame(condition = "bugaboo") %>%
+  add_predicted_draws(m, re_formula = ~(1|condition),
+                        n = 2000)
+```
+
+That fails because I tried to pass in a level of my grouping variable that _wasn't_ in the original model! 
+
+Second, passing in new levels -- but telling the function to just ignore them:
+
+```{r m_data_NA}
+data_frame(condition = "bugaboo") %>%
+  add_predicted_draws(m, re_formula = NA,#~(1|condition),
+                        n = 2000) %>%
+  ggplot(aes(x = .prediction, y = condition)) +
+  geom_density_ridges(fill = "#41b6c4") + 
+  theme_minimal()
+```
+Here, i'm still passing in the unknown level -- but the function doesn't complain, because I'm not including random effects at all! This is the same result from above, when we used `NA` or `~0` to remove varying effects altogether. This is definitely something to watch for if you are passing in new data (I made this mistake, and it cost me an afternoon!)
+
+If we avoid both of these errors, we get what we expect: our means for our original groups, and a new predicted mean for `"bugaboo"`:
+
+```{r, new_level}
+ABC %>%
+  data_grid(condition) %>% 
+  add_row(condition = "bugaboo") %>%
+  add_predicted_draws(m, re_formula = ~(1|condition),
+                        allow_new_levels = TRUE,
+                        n = 2000) %>%
+  ggplot(aes(x = .prediction, y = condition)) +
+  geom_density_ridges(fill = "#41b6c4") +    theme_minimal()
+```
+
+Here you can see that the new level is much flatter than the other original five. It comes from the same population as the others, which is rather variable (the group means are sort of different to each other). As a result, this new distribution is quite wide, including all that uncertainty. 
+
+An ecologist might do something like this if we were had data on _some_ species in a community, but wanted to make predictions for new, as yet unobserved, species we might find next year.
