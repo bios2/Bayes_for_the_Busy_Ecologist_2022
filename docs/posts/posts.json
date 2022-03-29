@@ -17,6 +17,23 @@
     "input_file": "day3-nonlinear-models.knit.md"
   },
   {
+    "path": "posts/2022-03-29-day3-offsets/",
+    "title": "day3-offsets",
+    "description": "A short description of the post.",
+    "author": [
+      {
+        "name": "Andrew MacDonald",
+        "url": {}
+      }
+    ],
+    "date": "2022-03-29",
+    "categories": [],
+    "contents": "\r\nlet’s imagine that we have counted dandelions.\r\nDandelions occur on average 6 per square meter\r\nHowever we have five kinds of quadrat: 1, 4, 9 and 25 square meters\r\n\r\n\r\n\r\nHow can we get the correct number of dandelions?\r\nPoisson count model\r\n\\[\r\n\\begin{align}\r\ny &\\sim \\text{Poisson}(\\lambda) \\\\\r\n\\text{log}(\\lambda) &= \\beta\r\n\\end{align}\r\n\\] \\(\\lambda\\) is the average response. If we want to measure the average per unit effort, we can do that too:\r\n\\[\r\n\\begin{align}\r\ny &\\sim \\text{Poisson}(\\lambda) \\\\\r\n\\text{log}(\\lambda/Q) &= \\beta\r\n\\end{align}\r\n\\]\r\n\\[\r\n\\begin{align}\r\ny &\\sim \\text{Poisson}(\\lambda) \\\\\r\n\\text{log}(\\lambda) - \\text{log}(Q) &= \\beta\r\n\\end{align}\r\n\\]\r\n\\[\r\n\\begin{align}\r\ny &\\sim \\text{Poisson}(\\lambda) \\\\\r\n\\text{log}(\\lambda) &= \\beta + \\text{log}(Q)\r\n\\end{align}\r\n\\]\r\nIn other words, we need a way to add a log coefficient to a model and give it a slope of exactly one. Fortunately the function offset() is here to do exactly this:\r\n\r\n\r\nCall:\r\nglm(formula = obs_dandelions ~ 1, family = poisson(link = \"log\"), \r\n    data = imaginary_dandelions)\r\n\r\nDeviance Residuals: \r\n   Min      1Q  Median      3Q     Max  \r\n-9.612  -7.071  -2.758   2.872  12.781  \r\n\r\nCoefficients:\r\n            Estimate Std. Error z value Pr(>|z|)    \r\n(Intercept)  4.06188    0.01694   239.8   <2e-16 ***\r\n---\r\nSignif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1\r\n\r\n(Dispersion parameter for poisson family taken to be 1)\r\n\r\n    Null deviance: 3100.8  on 59  degrees of freedom\r\nResidual deviance: 3100.8  on 59  degrees of freedom\r\nAIC: 3419.8\r\n\r\nNumber of Fisher Scoring iterations: 5\r\n\r\nThis gives the wrong answer!\r\n\r\n\r\nCall:\r\nglm(formula = obs_dandelions ~ 1 + offset(log(quadrat_size)), \r\n    family = poisson(link = \"log\"), data = imaginary_dandelions)\r\n\r\nDeviance Residuals: \r\n     Min        1Q    Median        3Q       Max  \r\n-2.89751  -1.03595   0.01749   0.62711   2.46420  \r\n\r\nCoefficients:\r\n            Estimate Std. Error z value Pr(>|z|)    \r\n(Intercept)  1.78461    0.01694   105.4   <2e-16 ***\r\n---\r\nSignif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1\r\n\r\n(Dispersion parameter for poisson family taken to be 1)\r\n\r\n    Null deviance: 81.873  on 59  degrees of freedom\r\nResidual deviance: 81.873  on 59  degrees of freedom\r\nAIC: 400.87\r\n\r\nNumber of Fisher Scoring iterations: 4\r\n\r\nthe coefficient should be close to 6, after we reverse the link function:\r\n\r\n[1] 5.957265\r\n\r\n\r\n\r\n\r\n",
+    "preview": "posts/2022-03-29-day3-offsets/day3-offsets_files/figure-html5/unnamed-chunk-1-1.png",
+    "last_modified": "2022-03-29T13:49:09-04:00",
+    "input_file": "day3-offsets.knit.md"
+  },
+  {
     "path": "posts/2022-03-24-day-2-hierarchical-and-nonlinear-models/",
     "title": "Day 2: hierarchical and nonlinear models",
     "description": "many groups and curving lines",
