@@ -9,13 +9,59 @@ date: 2022-03-29
 output:
   distill::distill_article:
     self_contained: false
+editor_options: 
+  chunk_output_type: console
 ---
 
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(echo = TRUE)
 ```
 
 
+```{r}
+library(tidyverse)
 
+
+n <- 300
+
+sigma_disper <- .7
+average_nestling <- 5
+nestling_shrub <- .03
+
+fake_nestlings <- tibble(
+  obs_label = 1:n,
+  shrub_cover = runif(n, min = 3, max = 70),
+  shrub_cover_c = shrub_cover - mean(shrub_cover),
+  log_avg_nestlings = log(average_nestling) + nestling_shrub*shrub_cover_c,
+  log_avg_nestlings_overdisp = log_avg_nestlings + rnorm(n, mean = 0, sd = sigma_disper),
+  nestlings_pois = rpois(n, exp(log_avg_nestlings)),
+  nestlings_overdisp = rpois(n, exp(log_avg_nestlings_overdisp)))
+```
+
+
+```{r}
+fake_nestlings |> 
+  ggplot(aes(x = shrub_cover, y = nestlings_pois)) + geom_point()
+```
+
+```{r}
+
+fake_nestlings |> 
+  ggplot(aes(x = shrub_cover, y = nestlings_overdisp)) + geom_point()
+
+```
+
+
+```{r}
+library(brms)
+
+nest_poisson <- bf(nestlings_overdisp ~ shrub_cover_c, family = poisson())
+nest_intercept <- bf(nestlings_overdisp ~ shrub_cover_c + (1|obs_label), family = poisson())
+nest_negbin <- bf(nestlings_overdisp ~ shrub_cover_c, family = negbinomial())
+```
+
+```{r}
+brm(nest)
+```
 
