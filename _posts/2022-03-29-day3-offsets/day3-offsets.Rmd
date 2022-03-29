@@ -1,0 +1,101 @@
+---
+title: "day3-offsets"
+description: |
+  A short description of the post.
+author:
+  - name: Andrew MacDonald
+    url: {}
+date: 2022-03-29
+output:
+  distill::distill_article:
+    self_contained: false
+editor_options: 
+  chunk_output_type: console
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+let's imagine that we have counted dandelions. 
+
+Dandelions occur on average 6 per square meter
+
+However we have five kinds of quadrat: 1, 4, 9 and 25 square meters
+
+```{r}
+library(tidyverse)
+
+imaginary_dandelions <- tibble(quadrat_size = rep(c(1,4, 9, 25), each = 15),
+       n_per_m2 = purrr::map(quadrat_size, rpois, lambda = 6),
+       obs_dandelions = map_dbl(n_per_m2, sum))
+
+ggplot(imaginary_dandelions, aes(x = obs_dandelions)) + geom_histogram() + 
+  facet_wrap(~quadrat_size)
+
+```
+
+How can we get the correct number of dandelions? 
+
+
+## Poisson count model
+
+$$
+\begin{align}
+y &\sim \text{Poisson}(\lambda) \\
+\text{log}(\lambda) &= \beta
+\end{align}
+$$
+$\lambda$ is the average response. If we want to measure the average _per unit effort_, we can do that too:
+
+$$
+\begin{align}
+y &\sim \text{Poisson}(\lambda) \\
+\text{log}(\lambda/Q) &= \beta
+\end{align}
+$$
+
+
+
+
+$$
+\begin{align}
+y &\sim \text{Poisson}(\lambda) \\
+\text{log}(\lambda) - \text{log}(Q) &= \beta
+\end{align}
+$$
+
+
+$$
+\begin{align}
+y &\sim \text{Poisson}(\lambda) \\
+\text{log}(\lambda) &= \beta + \text{log}(Q)
+\end{align}
+$$
+
+In other words, we need a way to add a log coefficient to a model and give it a slope of _exactly one_. Fortunately the function `offset()` is here to do exactly this:
+
+```{r}
+dandelion_model <- glm(obs_dandelions ~ 1, family = poisson(link = "log"), data = imaginary_dandelions)
+summary(dandelion_model) 
+
+```
+
+This gives the wrong answer! 
+ 
+ 
+```{r}
+dandelion_model <- glm(obs_dandelions ~ 1 + offset(log(quadrat_size)),
+                       family = poisson(link = "log"),
+                       data = imaginary_dandelions)
+summary(dandelion_model) 
+```
+
+
+the coefficient should be close to 6, after we reverse the link function:
+
+```{r}
+exp(coef(dandelion_model)[[1]])
+```
+ 

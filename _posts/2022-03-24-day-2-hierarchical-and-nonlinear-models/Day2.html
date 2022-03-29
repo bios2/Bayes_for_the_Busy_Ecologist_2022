@@ -1919,7 +1919,7 @@ scale reduction factor on split chains (at convergence, Rhat = 1).</code></pre>
 </code></pre>
 </div>
 </div>
-<p>An easy way to visualize these results is with a so-called “joyplot”<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a></p>
+<p>An easy way to visualize these results is with a <em>ridgeline plot</em> as above</p>
 <div class="layout-chunk" data-layout="l-body">
 <div class="sourceCode">
 <pre class="sourceCode r"><code class="sourceCode r"><span class='va'>ABC</span> <span class='op'><a href='https://modelr.tidyverse.org/reference/pipe.html'>%&gt;%</a></span>
@@ -1932,7 +1932,7 @@ scale reduction factor on split chains (at convergence, Rhat = 1).</code></pre>
 </div>
 <p><img src="Day2_files/figure-html5/m_plot-1.png" width="624" /></p>
 </div>
-<p>Alright. This used the simple vanilla option, <code>add_predicted_samples(m)</code>. This uses the default options for making predictions, which recall is “NULL (default), include all group-level effects”. If you set <code>add_predicted_samples(m, re_formula = NULL)</code> (try it!), you’ll get exactly the same figure.<br />
+<p>Alright. This used the simple vanilla option, <code>add_predicted_samples(m)</code>. This uses the default options for making predictions, which recall is “NULL (default), include all group-level effects”. If you set <code>add_predicted_samples(m, re_formula = NULL)</code>, you’ll get exactly the same figure.<br />
 So we can see that to “include” an effect is to take the actual estimated intercepts for each <em>specific group we studied</em> and use them to make new predictions for the same groups. This is <strong>Case 1</strong> from McElreath’s list (though in this case, because we only have groups and nothing else, Case 1 and 2 are the same).</p>
 <p>We can also say the <strong>exact same thing</strong> using a formula:</p>
 <div class="layout-chunk" data-layout="l-body">
@@ -1947,7 +1947,7 @@ So we can see that to “include” an effect is to take the actual estimated in
 </div>
 <p><img src="Day2_files/figure-html5/m_re_condition-1.png" width="624" /></p>
 </div>
-<p>That’s right, there are three ways to say the exact same thing: say nothing, say <code>NULL</code>, or say the original “random effects” formula<a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a>. You go with what you feel in your heart is right, but I prefer the formula.<br />
+<p>That’s right, there are three ways to say the exact same thing: say nothing, say <code>NULL</code>, or say the original “random effects” formula<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a>. You go with what you feel in your heart is right, but I prefer the formula.<br />
 In all three cases, we are using the model to predict the means for the groups in our varying-intercepts model. This is what the documentation means by “including” these varying intercepts.</p>
 <h3 id="squishing-those-random-effects">Squishing those random effects</h3>
 <p>OK so that was three separate ways to make predictions for the <em>same</em> groups. What else can we do? Let’s try that thing with the <code>NA</code> argument, which means “include no group-level effects”:</p>
@@ -1963,7 +1963,7 @@ In all three cases, we are using the model to predict the means for the groups i
 </div>
 <p><img src="Day2_files/figure-html5/m_plot_NA_TRUE-and_zero-1.png" width="624" /></p>
 </div>
-<p>Ah, so if you do this, all the groups come out the same! But if they’re all the same, what do they represent? It seems reasonable that they represent the model’s intercept, as if the varying intercepts were all 0. Let’s calculate predicitons that ignore the varying effects – that is, using only the model intercept and the standard deviation of the response – using a bit of [handy <code>purrr</code> magic]<a href="#fn3" class="footnote-ref" id="fnref3" role="doc-noteref"><sup>3</sup></a>:</p>
+<p>Ah, so if you do this, all the groups come out the same! But if they’re all the same, what do they represent? It seems reasonable that they represent the model’s intercept, as if the varying intercepts were all 0. Let’s calculate predicitons that ignore the varying effects – that is, using only the model intercept and the standard deviation of the response – using a bit of [handy <code>purrr</code> magic]<a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a>:</p>
 <div class="layout-chunk" data-layout="l-body">
 <div class="sourceCode">
 <pre class="sourceCode r"><code class="sourceCode r"><span class='va'>m</span> <span class='op'><a href='https://modelr.tidyverse.org/reference/pipe.html'>%&gt;%</a></span> 
@@ -2044,9 +2044,8 @@ In all three cases, we are using the model to predict the means for the groups i
 <section class="footnotes" role="doc-endnotes">
 <hr />
 <ol>
-<li id="fn1" role="doc-endnote"><p>in writing this I came to realize that <a href="http://serialmentor.com/blog/2017/9/15/goodbye-joyplots">joyplots are over; we do ridgelines now</a>. Also Claus Wilke is one hell of a blogger, definitely going to start reading him!<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
-<li id="fn2" role="doc-endnote"><p>this impulse in R to “help your users” by making it possible to say a great deal by saying almost nothing is… actually pretty counterproductive, I’d argue? But that’s a different post<a href="#fnref2" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
-<li id="fn3" role="doc-endnote"><p>no magic required! <code>rnorm</code> is already vectorized<a href="#fnref3" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn1" role="doc-endnote"><p>this impulse in R to “help your users” by making it possible to say a great deal by saying almost nothing is… actually pretty counterproductive, I’d argue? But that’s a different post<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn2" role="doc-endnote"><p>no magic required! <code>rnorm</code> is already vectorized<a href="#fnref2" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 </ol>
 </section>
 <!--radix_placeholder_article_footer-->

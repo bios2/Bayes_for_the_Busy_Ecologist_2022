@@ -1,0 +1,21 @@
+---
+title: "day3-random-effects-continued"
+description: |
+  A short description of the post.
+author:
+  - name: Andrew MacDonald
+    url: {}
+date: 2022-03-29
+output:
+  distill::distill_article:
+    self_contained: false
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+
+
+

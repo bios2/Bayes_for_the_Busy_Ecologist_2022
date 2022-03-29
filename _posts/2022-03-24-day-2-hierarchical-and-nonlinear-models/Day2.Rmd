@@ -279,7 +279,7 @@ m <- brm(
 )
 ```
 
-An easy way to visualize these results is with a so-called "joyplot"^[in writing this I came to realize that [joyplots are over; we do ridgelines now](http://serialmentor.com/blog/2017/9/15/goodbye-joyplots). Also Claus Wilke is one hell of a blogger, definitely going to start reading him!]
+An easy way to visualize these results is with a _ridgeline plot_ as above
 
 ```{r m_plot}
 ABC %>%
@@ -290,7 +290,7 @@ ABC %>%
   theme_minimal()
 ```
 
-Alright. This used the simple vanilla option, `add_predicted_samples(m)`. This uses the default options for making predictions, which recall is "NULL (default), include all group-level effects". If you set `add_predicted_samples(m, re_formula = NULL)` (try it!), you'll get exactly the same figure.  
+Alright. This used the simple vanilla option, `add_predicted_samples(m)`. This uses the default options for making predictions, which recall is "NULL (default), include all group-level effects". If you set `add_predicted_samples(m, re_formula = NULL)`, you'll get exactly the same figure.  
 So we can see that to "include" an effect is to take the actual estimated intercepts for each _specific group we studied_ and use them to make new predictions for the same groups. This is **Case 1** from McElreath's list (though in this case, because we only have groups and nothing else, Case 1 and 2 are the same). 
 
 We can also say the **exact same thing** using a formula: 

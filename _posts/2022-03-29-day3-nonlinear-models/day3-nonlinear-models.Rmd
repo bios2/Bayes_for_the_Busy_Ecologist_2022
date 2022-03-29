@@ -1,0 +1,220 @@
+---
+title: "Day3: nonlinear models"
+description: |
+  Nature has no straight lines
+author:
+  - name: Andrew MacDonald
+    url: {}
+date: 2022-03-29
+output:
+  distill::distill_article:
+    self_contained: false
+editor_options: 
+  chunk_output_type: console
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Fitting nonlinear models to ecological data is interesting and powerful. 
+This is possible in base R using the function `nls()`. 
+In a Bayesian approach we can do the same thing, but we don't need to learn any new tools.
+
+
+## Hemlock growth
+
+we will work with a dataset 
+
+```{r}
+library(tidyverse)
+library(tidybayes)
+library(brms)
+
+hemlock <- readr::read_delim(
+  "https://raw.githubusercontent.com/bios2/biodiversity_modelling_2021/master/data/hemlock.txt", 
+  delim = " ",
+  col_names = c("x","light", "growth"), skip = 1)
+
+knitr::kable(head(hemlock, n = 3))
+
+
+
+ggplot(hemlock, aes(x = light, y = growth)) + 
+  geom_point()
+
+```
+
+
+## define a model
+
+We need a function for the mean growth rate per species. 
+A very popular choice in ecology is the famous **Type 2 functional response**:
+
+$$
+y = \frac{a x}{b + x}
+$$
+* $a$ is the asymptote -- the max value of $y$ when $x$ is large
+* $b$ is the value of $x$ where $y = a/2$
+
+We experiment using `curve` to understand how this works
+
+```{r}
+a <- 195
+b <- 30
+curve(a * x / (b + x), xlim = c(0, 100))
+```
+
+
+## define a distribution for observations around this average
+
+
+We can use the gamma distribution. The gamma distribution looks like this:
+
+```{r}
+curve(dgamma(x, 3,5), xlim = c(0, 3))
+```
+
+The gamma distribution has two parameters:
+
+$$
+\text{Gamma}(a, b)
+$$
+
+The mean and variance are both functions of both of these parameters:
+
+$$
+\mu = \frac{a}{b}
+$$
+$$
+\sigma = \frac{a}{b^2}
+$$
+
+we can demonstrate this easily in R:
+
+```{r}
+xx <- rgamma(5000, 3, 5)
+mean(xx) #about 3/5  = 0.6
+var(xx) #about 3/(5^2) = 0.12
+```
+
+We can reverse this: write the parameters $a$ and $b$ in terms of the desired mean and standard deviation:
+
+$$
+\begin{align}
+a &= \frac{\mu^2}{\sigma^2} \\
+b &= \frac{\mu}{\sigma^2} \\
+\end{align}
+$$
+
+_optional_ prove that to yourself with algebra!
+
+*exercise* simulate 3000 from a Gamma distribution with a mean of 42 and a standard deviation of 10
+
+### simulating observations:
+
+we exploit this technique to make up some fake data:
+
+```{r}
+a <- 195
+b <- 20
+x_values <- runif(n = 70, min = 0, max = 100)
+average_response <- a * x_values / (b + x_values)
+plot(x_values, average_response)
+
+```
+
+```{r}
+sigma <- 15
+
+observed_response <- rgamma(n = 70, shape = average_response^2/sigma^2, rate = average_response/ sigma^2)
+
+plot(x_values, observed_response)
+```
+
+## Defining a bayesian model
+
+To fully build our Bayesian model we put all the above together:
+
+* our function that describes how light causes the _average_ growth
+* a distribution for observations around that average
+* priors for the three unobserved quantities: $a$, $b$ and $\sigma$
+
+$$
+\begin{align}
+\text{height} &\sim \text{Gamma}(\mu^2/\sigma^2, \mu/\sigma^2) \\
+\mu &= \frac{aL}{b + L} \\
+\sigma_{height} & \sim \text{Exponential}(4)\\
+a               & \sim \text{Normal}(200, 15)\\
+b               & \sim \text{Normal}(25, 5)\\
+\end{align}
+$$
+## Prior predictive simulations
+
+```{r}
+hemlock$x <- NULL
+
+light_curve_bf <- bf(growth ~ a * light / (b + light),
+                        family = Gamma(link = "identity"),
+                        a ~ 1,
+                        b ~ 1, 
+                        nl = TRUE)
+
+get_prior(light_curve_bf, data = hemlock)
+
+light_curve_prior <- c(
+  # prior(exponential(.1), class = "shape"),
+  prior(gamma(6.25, .25), class = "shape"),
+  prior(normal(250, 50), class = "b", nlpar = "a"),
+  prior(normal(30, 10), class = "b", nlpar = "b")
+)
+
+light_curve_model_prior <- brm(light_curve_bf,
+                               prior = light_curve_prior,
+                               data = hemlock,
+                               refresh = FALSE,
+                               sample_prior = "only", 
+                               file = here::here("_posts", "2022-03-29-day3-nonlinear-models", "light_curve_prior"),
+                               file_refit = "on_change")
+```
+
+
+```{r}
+
+
+hemlock |> 
+  add_predicted_draws(light_curve_model_prior, ndraws = 6) |> 
+  ggplot(aes(x = light, y = .prediction)) + 
+  geom_point() + 
+  facet_wrap(~.draw) + 
+  coord_cartesian(ylim = c(0, 300))
+```
+
+fit to real data:
+
+```{r}
+light_curve_model_posterior <- brm(light_curve_bf,
+                               prior = light_curve_prior,
+                               data = hemlock,
+                               sample_prior = "only", 
+                               file = here::here("_posts", "2022-03-29-day3-nonlinear-models", "light_curve_posterior"),
+                               file_refit = "on_change")
+```
+
+Predictions with the original data:
+
+```{r}
+
+hemlock_post <- hemlock |> 
+  add_predicted_draws(light_curve_model_posterior)
+
+
+hemlock_post |> 
+  ggplot(aes(x = light, y = .prediction)) + 
+  stat_lineribbon()+ 
+  coord_cartesian(ylim = c(0, 300)) + 
+  scale_fill_brewer(palette = "Oranges") + 
+  geom_point(aes(x = light, y = growth), size = 3, pch = 21, fill = "lightblue", data = hemlock)
+```
+
