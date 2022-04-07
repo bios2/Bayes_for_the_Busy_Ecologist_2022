@@ -267,3 +267,12 @@ fake_spp_prior |>
   facet_grid(spp~.draw)
 ```
 
+```{r}
+# mean of 5, sd of 2
+hist(rnorm(400, 5, 2))
+
+hist(rnorm(400, 0, 1))
+hist(rnorm(400, 0, 1)*2 + 5)
+
+```
+
