@@ -88,7 +88,7 @@ $$
 \mu = \frac{a}{b}
 $$
 $$
-\sigma = \frac{a}{b^2}
+\sigma^2 = \frac{a}{b^2}
 $$
 
 we can demonstrate this easily in R:
@@ -126,7 +126,7 @@ plot(x_values, average_response)
 ```
 
 ```{r}
-sigma <- 15
+sigma <- 31
 
 observed_response <- rgamma(n = 70, shape = average_response^2/sigma^2, rate = average_response/ sigma^2)
 
@@ -143,9 +143,9 @@ To fully build our Bayesian model we put all the above together:
 
 $$
 \begin{align}
-\text{height} &\sim \text{Gamma}(\mu^2/\sigma^2, \mu/\sigma^2) \\
+\text{growth} &\sim \text{Gamma}(\mu^2/\sigma^2, \mu/\sigma^2) \\
 \mu &= \frac{aL}{b + L} \\
-\sigma_{height} & \sim \text{Exponential}(4)\\
+\sigma & \sim \text{Exponential}(4)\\
 a               & \sim \text{Normal}(200, 15)\\
 b               & \sim \text{Normal}(25, 5)\\
 \end{align}
@@ -155,10 +155,10 @@ $$
 ```{r}
 hemlock$x <- NULL
 
-light_curve_bf <- bf(growth ~ a * light / (b + light),
+light_curve_bf <- bf(growth ~ exp(loga) * light / (exp(logb) + light),
                         family = Gamma(link = "identity"),
-                        a ~ 1,
-                        b ~ 1, 
+                        loga ~ 1,
+                        logb ~ 1, 
                         nl = TRUE)
 
 get_prior(light_curve_bf, data = hemlock)
@@ -166,8 +166,8 @@ get_prior(light_curve_bf, data = hemlock)
 light_curve_prior <- c(
   # prior(exponential(.1), class = "shape"),
   prior(gamma(6.25, .25), class = "shape"),
-  prior(normal(250, 50), class = "b", nlpar = "a"),
-  prior(normal(30, 10), class = "b", nlpar = "b")
+  prior(gamma(250^2/70^2, 250/70^2), class = "b", nlpar = "a", lb = 0),
+  prior(normal(30, 20), class = "b", nlpar = "b")
 )
 
 light_curve_model_prior <- brm(light_curve_bf,
@@ -181,7 +181,6 @@ light_curve_model_prior <- brm(light_curve_bf,
 
 
 ```{r}
-
 
 hemlock |> 
   add_predicted_draws(light_curve_model_prior, ndraws = 6) |> 
@@ -197,7 +196,7 @@ fit to real data:
 light_curve_model_posterior <- brm(light_curve_bf,
                                prior = light_curve_prior,
                                data = hemlock,
-                               sample_prior = "only", 
+                               sample_prior = "yes", 
                                file = here::here("_posts", "2022-03-29-day3-nonlinear-models", "light_curve_posterior"),
                                file_refit = "on_change")
 ```
@@ -215,6 +214,56 @@ hemlock_post |>
   stat_lineribbon()+ 
   coord_cartesian(ylim = c(0, 300)) + 
   scale_fill_brewer(palette = "Oranges") + 
-  geom_point(aes(x = light, y = growth), size = 3, pch = 21, fill = "lightblue", data = hemlock)
+  geom_point(aes(x = light, y = growth), size = 3, pch = 21,
+             fill = "lightblue", data = hemlock)
+```
+
+### multilevel nonlinear model
+
+
+```{r}
+
+
+
+
+light_curve_bf <- bf(growth ~ exp(loga) * light / (exp(logb) + light),
+                        family = Gamma(link = "identity"),
+                        loga ~ 1 + (1|ben|spp),
+                        logb ~ 1 + (1|ben|spp), 
+                        nl = TRUE)
+
+get_prior(light_curve_bf, data = hemlock |> mutate(spp = "a"))
+
+light_curve_prior <- c(
+  # prior(exponential(.1), class = "shape"),
+  prior(gamma(6.25, .25), class = "shape"),
+  prior(normal(5.5, 3), class = "b", nlpar = "loga"),
+  prior(normal(3.4, 2), class = "b", nlpar = "logb"),
+  prior(exponential(8), class = "sd", group = "spp", nlpar = "loga"),
+  prior(exponential(8), class = "sd", group = "spp", nlpar = "logb"),
+  prior(lkj(2), class = "cor")
+)
+
+fake_hemlock <- expand.grid(spp = letters[1:3],
+                            light = runif(120, min = 0, max = 100), 
+                            growth = 1)
+
+light_curve_model_prior <- brm(light_curve_bf,
+                               prior = light_curve_prior,
+                               data = fake_hemlock,
+                               refresh = FALSE,
+                               sample_prior = "only", 
+                               file = here::here("_posts", "2022-03-29-day3-nonlinear-models", "light_curve_prior"),
+                               file_refit = "on_change")
+```
+
+```{r}
+fake_spp_prior <- fake_hemlock |> 
+  add_predicted_draws(light_curve_model_prior, ndraws = "4")
+
+
+fake_spp_prior |> 
+  ggplot(aes(x = light , y = .prediction)) + geom_point() + 
+  facet_grid(spp~.draw)
 ```
 

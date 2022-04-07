@@ -98,4 +98,42 @@ the coefficient should be close to 6, after we reverse the link function:
 ```{r}
 exp(coef(dandelion_model)[[1]])
 ```
- 
+
+
+## Do it the Bayes Way
+
+```{r}
+library(brms)
+
+dandelion_bf <- bf(obs_dandelions ~ 1 + offset(log(quadrat_size)), 
+                   family = poisson(link = "log"))
+
+get_prior(dandelion_bf, data = imaginary_dandelions)
+
+dandelion_prior <- prior(normal(2, 1), class = "Intercept")
+
+dandelion_model <- brm(formula = dandelion_bf,
+                       data = imaginary_dandelions, 
+                       prior = dandelion_prior)
+
+```
+
+look at stan code
+
+```{r}
+stancode(dandelion_model)
+```
+
+look at posterior distribution of parameter
+
+```{r}
+# as.matrix(dandelion_model) |> head()
+
+library(tidybayes)
+
+tidy_draws(dandelion_model) |> 
+  ggplot(aes(x = exp(b_Intercept))) + 
+  geom_histogram() + 
+  geom_vline(xintercept = 6, col = "red", lwd = 3)
+```
+
